@@ -50,6 +50,14 @@ class ViewController: UIViewController, MKMapViewDelegate {
         
         return pinView
     }
+    
+    func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+        print("Pin was tapped at \(view.annotation!.coordinate.latitude) and \(view.annotation!.coordinate.longitude)")
+        
+        // This line has to run in order to be able to reselect the pin again. Otherwise two taps
+        // will only cause the recognition of one
+        mapView.deselectAnnotation(view.annotation, animated: false)
+    }
 
 
 
