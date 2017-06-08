@@ -24,6 +24,24 @@ class ViewController: UIViewController, MKMapViewDelegate {
         mapView.addGestureRecognizer(longPress)
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        let backItem = UIBarButtonItem()
+        backItem.title = "OK"
+        self.navigationItem.backBarButtonItem = backItem
+        
+        
+        
+        
+        self.navigationController?.setToolbarHidden(true, animated: false)
+        self.navigationController?.setNavigationBarHidden(true, animated: false)
+    }
+    
+    func something() {
+        print("something fired")
+    }
+    
     func addAnnotation(gestureRecogniser: UIGestureRecognizer) {
         if gestureRecogniser.state == .began {
             let touchPoint = gestureRecogniser.location(in: mapView)
@@ -53,6 +71,17 @@ class ViewController: UIViewController, MKMapViewDelegate {
     
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
         print("Pin was tapped at \(view.annotation!.coordinate.latitude) and \(view.annotation!.coordinate.longitude)")
+     
+        
+        // We want to display the other view controller here
+        let controller: PhotoAlbumViewController
+        controller = (self.storyboard?.instantiateViewController(withIdentifier: "PhotoAlbumViewController")) as! PhotoAlbumViewController
+        
+        self.navigationController?.pushViewController(controller, animated: true)
+        
+        
+        
+        //self.present(controller, animated: true, completion: nil)
         
         // This line has to run in order to be able to reselect the pin again. Otherwise two taps
         // will only cause the recognition of one
