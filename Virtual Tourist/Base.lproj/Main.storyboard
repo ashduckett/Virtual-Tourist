@@ -33,6 +33,9 @@
                             <constraint firstItem="fJU-uR-nBE" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" id="moD-dU-wCT"/>
                         </constraints>
                     </view>
+                    <connections>
+                        <outlet property="mapView" destination="fJU-uR-nBE" id="DWR-c6-qXg"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
