@@ -12,10 +12,27 @@ import UIKit
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+    
+    // You need to update the name
+    lazy var coreDataStack = CoreDataStack(modelName: "Model")
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+
+        
+        
+        guard let mapController = window?.rootViewController as? MapViewController else {
+            return true
+        }
+        
+        mapController.managedContext = coreDataStack.managedContext
+        
+        
+        
+        
+        
+        
         return true
     }
 

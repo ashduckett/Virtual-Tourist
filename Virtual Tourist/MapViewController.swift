@@ -8,9 +8,11 @@
 
 import UIKit
 import MapKit
+import CoreData
 
-class ViewController: UIViewController, MKMapViewDelegate {
-
+class MapViewController: UIViewController, MKMapViewDelegate {
+    var managedContext: NSManagedObjectContext!
+    
     @IBOutlet weak var mapView: MKMapView!
     
     override func viewDidLoad() {

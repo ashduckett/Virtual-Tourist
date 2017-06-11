@@ -19,13 +19,11 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource {
         super.viewDidLoad()
         photoAlbum.dataSource = self
         photoAlbum.delegate = self
-        
-        
-        
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        
 
         self.navigationController?.setToolbarHidden(false, animated: false)
         self.navigationController?.setNavigationBarHidden(false, animated: false)
