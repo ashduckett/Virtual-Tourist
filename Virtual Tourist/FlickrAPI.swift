@@ -7,13 +7,70 @@
 //
 
 import Foundation
+import CoreData
 
 class FlickrAPI {
-    static func getPhotoCountForSearch(completionHandler: @escaping (_: String?, _: Int?) -> Void) {
+    
+    static func getPhotosForPin(pin: Pin, completionHandler: @escaping () -> Void) {
+        
+        let methodParameters: [String:String] = [
+            Constants.FlickrParameterKeys.BoundingBox:bboxString(pin: pin),
+            Constants.FlickrParameterKeys.Method:Constants.FlickrParameterValues.SearchMethod,
+            Constants.FlickrParameterKeys.APIKey:Constants.FlickrParameterValues.APIKey,
+            Constants.FlickrParameterKeys.SafeSearch:Constants.FlickrParameterValues.UseSafeSearch,
+            Constants.FlickrParameterKeys.Extras:Constants.FlickrParameterValues.MediumURL,
+            Constants.FlickrParameterKeys.Format:Constants.FlickrParameterValues.ResponseFormat,
+            Constants.FlickrParameterKeys.NoJSONCallback: Constants.FlickrParameterValues.DisableJSONCallback
+        ]
+        
+        FlickrAPIClient.performFlickrGETRequest(urlToHit: flickrURLFromParameters(methodParameters), completionHandler: {(success, errorString, result, response) in
+            
+            if success {
+                
+                guard let result = result else {
+                    return
+                }
+                
+                guard let photosDictionary = result[Constants.FlickrResponseKeys.Photos] as? [String:AnyObject] else {
+                    return
+                }
+                
+                guard let photosArray = photosDictionary["photo"] as! [AnyObject]? else {
+                    return
+                }
+                                
+                if (pin.photos?.count)! == 0 {
+                    
+                    for photo in photosArray {
+                        let photoToAdd = NSEntityDescription.insertNewObject(forEntityName: "Photo", into: pin.managedObjectContext!) as! Photo
+                    
+                        if let photoURL = photo["url_m"] as! String? {
+                            photoToAdd.imageURL = photoURL
+                        }
+                    
+                        pin.addToPhotos(photoToAdd)
+                    
+                    }
+                }
+                
+                // Remove this in the arguments and calls
+                completionHandler()
+                
+                
+            } else {
+                completionHandler()
+            }
+        })
+
+        
+        
+    }
+    
+    /*static func getPhotoCountForSearch(completionHandler: @escaping (_: String?, _: Int?) -> Void) {
         
         
         let methodParameters: [String:String] = [
-            Constants.FlickrParameterKeys.BoundingBox:bboxString(),
+            Constants.FlickrParameterKeys.BoundingBox:bboxString(pin: pin),
             Constants.FlickrParameterKeys.Method:Constants.FlickrParameterValues.SearchMethod,
             Constants.FlickrParameterKeys.APIKey:Constants.FlickrParameterValues.APIKey,
             Constants.FlickrParameterKeys.SafeSearch:Constants.FlickrParameterValues.UseSafeSearch,
@@ -54,7 +111,7 @@ class FlickrAPI {
             
             
         })
-    }
+    }*/
     
     private static func flickrURLFromParameters(_ parameters: [String: String]) -> URL {
         
@@ -73,34 +130,18 @@ class FlickrAPI {
     }
 
     
-    private static func bboxString() -> String {
-        // There are constants named SearchBBoxHalfWidth (lng) and SearchBBoxHalfHeight (lat)
+    private static func bboxString(pin: Pin) -> String {
         
-        // Also ensure that the lat range falls in between SearchLatRange (-90, 90) and lng (-180, 180)
+        let longitude = pin.longitude
+        let latitude = pin.latitude
         
-        // Could we have got a 2000 for a minimum value?
-        /*if let latitude = Double(latitudeTextField.text!), let longitude = Double(longitudeTextField.text!) {
-         let minimumLongitude = max(longitude - Constants.Flickr.SearchBBoxHalfWidth, Constants.Flickr.SearchLonRange.0)
-         let minimumLatitude = max(latitude - Constants.Flickr.SearchBBoxHalfHeight, Constants.Flickr.SearchLatRange.0)
+        let minimumLongitude = max(longitude - Constants.Flickr.SearchBBoxHalfWidth, Constants.Flickr.SearchLonRange.0)
+        let minimumLatitude = max(latitude - Constants.Flickr.SearchBBoxHalfHeight, Constants.Flickr.SearchLatRange.0)
          
+        let maximumLongitude = min(longitude + Constants.Flickr.SearchBBoxHalfWidth, Constants.Flickr.SearchLonRange.1)
+        let maximumLatitude = min(latitude + Constants.Flickr.SearchBBoxHalfHeight, Constants.Flickr.SearchLonRange.1)
          
-         
-         let maximumLongitude = min(longitude + Constants.Flickr.SearchBBoxHalfWidth, Constants.Flickr.SearchLonRange.1)
-         let maximumLatitude = min(latitude + Constants.Flickr.SearchBBoxHalfHeight, Constants.Flickr.SearchLonRange.1)
-         
-         
-         print("\(minimumLongitude), \(minimumLatitude), \(maximumLongitude), \(maximumLatitude)")
-         
-         //return "\(minimumLongitude), \(minimumLatitude), \(maximumLongitude), \(maximumLatitude)"
-         
-         // Return a dummy result for now
-         return "74.4, 73.5, 76.4, 75.5"
-         } else {
-         return "0,0,0,0"
-         }*/
-        
-        // Dummy result
-        return "74.4, 73.5, 76.4, 75.5"
+        return "\(minimumLongitude), \(minimumLatitude), \(maximumLongitude), \(maximumLatitude)"
     }
 
 }

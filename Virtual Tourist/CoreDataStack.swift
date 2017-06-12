@@ -34,6 +34,7 @@ class CoreDataStack {
     
     func saveContext() {
         guard managedContext.hasChanges else {
+            print("no change")
             return
         }
         

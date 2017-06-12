@@ -8,23 +8,115 @@
 
 import Foundation
 import UIKit
+import MapKit
+import CoreData
 
 class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource {
     @IBOutlet weak var photoAlbum: UICollectionView!
+    @IBOutlet weak var mapView: MKMapView!
+    
+    
+    var managedContext: NSManagedObjectContext!
     
     fileprivate let sectionInsets = UIEdgeInsets(top: 0.0, left: 20.0, bottom: 0.0, right: 20.0)
     
+    // This will be set before the view is loaded and will be the pin that was selected.
+    var pin: Pin!
+    var photos: [Photo]?
     
+    var hasAlbum: Bool = false
+    
+    
+    // This method is called each time the view opens
     override func viewDidLoad() {
         super.viewDidLoad()
         photoAlbum.dataSource = self
         photoAlbum.delegate = self
+        
+        let pinLocation = CLLocationCoordinate2DMake(pin.latitude, pin.longitude)
+        let region = MKCoordinateRegionMake(pinLocation, MKCoordinateSpanMake(0.5, 0.5))
+        mapView.setCenter(pinLocation, animated: true)
+        mapView.setRegion(region, animated: false)
+        
+        
+        
+        // seems to be downloading more than once
+        print("viewDidLoad")
+        
+        FlickrAPI.getPhotosForPin(pin: pin, completionHandler: {
+            // The pin should now have all of its URLs but not its images
+            
+            
+            // Iterate over the pin photos. If a photo has a URL, but no Data, get the data using the URL and save the Data.
+            var count = 0
+            var count2 = 0
+            
+            
+            // How many photos?
+            
+            print("We have \(self.pin.photos?.count) photos")
+            
+            
+            
+            
+            if let photos = self.pin.photos {   // Get the current set of photos. These will be in the context
+                
+                // On the first run, we have 250 photos and 250 downloads. There are no "We already have data!" messages.
+                // On the second run, we have 500 photos and 250 of each.
+                
+                
+                print("Entered if statement with \(photos.count) photo objects")
+                
+                for photo in photos {           // Iterate over the photos
+                    let item = photo as! Photo
+                    
+                    guard let urString = item.imageURL else {
+                        return
+                    }
+                    
+                    guard let url = URL(string: urString) else {
+                        return
+                    }
+                    
+                   
+                    
+                    if let data = item.imageData {
+                        count = count + 1
+                        
+                        print("We have data already : \(count)")
+                    } else {
+                        count2 = count2 + 1
+                        // We have no image data. Download it, and update the model. Then save.
+                        print("downloading!: \(count2)")
+                        if let imageData = try? Data(contentsOf: url) {
+                            item.imageData = imageData as NSData
+                            
+                                                   }
+                    }
+                    
+                    
+                    
+                }
+                
+                do {
+                    try self.managedContext.save()
+                } catch {
+                    print("badness")
+                }
+
+                
+                
+            }
+            
+            
+            
+            
+        })
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-
         self.navigationController?.setToolbarHidden(false, animated: false)
         self.navigationController?.setNavigationBarHidden(false, animated: false)
         
@@ -33,21 +125,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource {
         
         setToolbarItems([flexibleSpace, newCollectionButton, flexibleSpace], animated: true)
     
-    
-    
-    
-    
-        FlickrAPI.getPhotoCountForSearch(completionHandler: {(errorString, result) in
-            print("We have a total of \(result!)")
-            
-            // At this point we can populate the CollectionView based on the value of result.
-            // This will just be the placeholder.
-            
-            // How do we set up the placeholders?
-            
-        
-        })
-    }
+        }
     
     private func flickrURLFromParameters(_ parameters: [String: String]) -> URL {
         
@@ -65,48 +143,93 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource {
         return components.url!
     }
     
-    private func bboxString() -> String {
-        // There are constants named SearchBBoxHalfWidth (lng) and SearchBBoxHalfHeight (lat)
-        
-        // Also ensure that the lat range falls in between SearchLatRange (-90, 90) and lng (-180, 180)
-        
-        // Could we have got a 2000 for a minimum value?
-        /*if let latitude = Double(latitudeTextField.text!), let longitude = Double(longitudeTextField.text!) {
-            let minimumLongitude = max(longitude - Constants.Flickr.SearchBBoxHalfWidth, Constants.Flickr.SearchLonRange.0)
-            let minimumLatitude = max(latitude - Constants.Flickr.SearchBBoxHalfHeight, Constants.Flickr.SearchLatRange.0)
-            
-            
-            
-            let maximumLongitude = min(longitude + Constants.Flickr.SearchBBoxHalfWidth, Constants.Flickr.SearchLonRange.1)
-            let maximumLatitude = min(latitude + Constants.Flickr.SearchBBoxHalfHeight, Constants.Flickr.SearchLonRange.1)
-            
-            
-            print("\(minimumLongitude), \(minimumLatitude), \(maximumLongitude), \(maximumLatitude)")
-            
-            //return "\(minimumLongitude), \(minimumLatitude), \(maximumLongitude), \(maximumLatitude)"
-            
-            // Return a dummy result for now
-            return "74.4, 73.5, 76.4, 75.5"
-        } else {
-            return "0,0,0,0"
-        }*/
-        
-        // Dummy result
-        return "74.4, 73.5, 76.4, 75.5"
-    }
     
     func newCollection() {
         print("New Collection button hit")
+        
+        
+        let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: "Pin")
+        let request = NSBatchDeleteRequest(fetchRequest: fetch)
+        
+        do {
+            let result = try managedContext.execute(request)
+        } catch {
+            print("prob")
+        }
+        
+        let fetch1 = NSFetchRequest<NSFetchRequestResult>(entityName: "Photo")
+        let request1 = NSBatchDeleteRequest(fetchRequest: fetch)
+        
+        do {
+            let result2 = try managedContext.execute(request1)
+        } catch {
+            print("prob")
+        }
     }
 }
 
 extension PhotoAlbumViewController {
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "FlickrCell", for: indexPath)
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "FlickrCell", for: indexPath) as! PhotoAlbumCell
         
         cell.backgroundColor = UIColor.black
         
+        // Maybe a single bool will do on load. hasAlbum.
+        
+        
+        
+        // We want to know if that one image has been saved.
+        
+        // This code checks to see if a specific photo at a specific position has data associated with it.
+        // What we should be checking is to see if an entire album exists.
+        // We want to download the entire album
+        
+        
+        /*if let photos = pin.photos {
+            let photo = photos[indexPath.item] as! Photo
+            
+            // This is where we're checking to see if this photo has any photo data associated with it.
+            if let data = photo.imageData {
+                print("We have data!")
+         
+                if let _ = photo.imageURL {
+                
+                        cell.imageView.image = UIImage(data: data as Data)
+                }
+                
+            } else {
+                // Here we know we don't have image data
+                    
+                print("We don't have image data!")
+                if let imageData = try? Data(contentsOf: URL(string: photo.imageURL!)!) {
+                    photo.imageData = imageData as NSData
+                    cell.imageView.image = UIImage(data: imageData)
+                    do {
+                        try managedContext.save()
+                    } catch {
+                        print("BADNESS")
+                    }
+
+             }
+            }
+        }*/
+        
+        // Now, get hold of the photo at item
+        
+        let photo = pin.photos?[indexPath.item] as! Photo
+        
+        // If it has associated data, load it
+        
+        if let photoImage = photo.imageData {
+            cell.imageView.image = UIImage(data: photoImage as Data)
+            print("We loaded data from the db")
+        } else {
+            print("no data yet. Probably still downloading")
+        }
+        
+        
+       
         return cell
     }
     
@@ -116,7 +239,12 @@ extension PhotoAlbumViewController {
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return 40
+
+        guard let photoCount = pin.photos?.count else {
+            return 0
+        }
+        
+        return photoCount
     }
 }
 
@@ -125,19 +253,14 @@ extension PhotoAlbumViewController: UICollectionViewDelegateFlowLayout {
         
         let paddingSpace = sectionInsets.left * (CGFloat(3) + 1.0)
         let availableWidth = photoAlbum.frame.width - paddingSpace
-        
-        //let availableWidth = 100.0//collectionView.frame.width
+
         let widthPerItem = availableWidth / 3.0
         
         return CGSize(width: widthPerItem, height: widthPerItem)
-        //return CGSize(width: availableWidth / 2, height: availableWidth / 2)
+
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
-      
-        print("Called")
-
-        
 
         return sectionInsets
     }

@@ -22,12 +22,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
         
         
-        guard let mapController = window?.rootViewController as? MapViewController else {
+        guard let mapController = window?.rootViewController?.childViewControllers[0] as? MapViewController else {
             return true
         }
         
-        mapController.managedContext = coreDataStack.managedContext
+        //guard let albumController = mapController.childViewControllers[0] as? PhotoAlbumViewController else {
+        //    return true
+        //}
         
+        mapController.managedContext = coreDataStack.managedContext
+      //  a//
+        
+        //lbumController.managedContext = coreDataStack.managedContext
         
         
         

@@ -13,6 +13,8 @@ import CoreData
 class MapViewController: UIViewController, MKMapViewDelegate {
     var managedContext: NSManagedObjectContext!
     
+    
+    
     @IBOutlet weak var mapView: MKMapView!
     
     override func viewDidLoad() {
@@ -24,6 +26,34 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(addAnnotation))
         longPress.minimumPressDuration = 1.5
         mapView.addGestureRecognizer(longPress)
+        
+        
+        
+        // When the view loads, we need to get hold of all the pins and plonk them on the map
+        
+        
+        do {
+            let fetchRequest: NSFetchRequest<Pin> = Pin.fetchRequest()
+            
+            let pins = try managedContext.fetch(fetchRequest)
+            print("Pin count: \(pins.count)")
+        
+        
+            for pin in pins {
+                let annotation = MKPointAnnotation()
+                annotation.coordinate.latitude = pin.latitude
+                annotation.coordinate.longitude = pin.longitude
+                mapView.addAnnotation(annotation)
+            }
+        } catch let error as NSError {
+            print("Problem fetching pins \(error)")
+        }
+        
+        
+        
+    
+        
+        
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -51,7 +81,33 @@ class MapViewController: UIViewController, MKMapViewDelegate {
             let annotation = MKPointAnnotation()
             annotation.coordinate = newCoordinates
             mapView.addAnnotation(annotation)
+    
+        
+            print(managedContext!)
+            
+            // We'll want to store more than one pin
+            // But we'll be saving each time a pin is added
+            //let pin: Pin
+            
+            let entity = NSEntityDescription.entity(forEntityName: "Pin", in: managedContext)!
+            
+            let pin = Pin(entity: entity, insertInto: managedContext)
+            
+            pin.latitude = annotation.coordinate.latitude
+            pin.longitude = annotation.coordinate.longitude
+            
+            do {
+                try managedContext.save()
+            } catch let error as NSError {
+                print("Saving went badly. Awww, no. \(error)")
+            }
+            
+            
+        
+        
         }
+        
+        
     }
     
     // I use this to describe the look of each annotation
@@ -76,8 +132,47 @@ class MapViewController: UIViewController, MKMapViewDelegate {
      
         
         // We want to display the other view controller here
+        
+        // Here you'll need to fetch your pin. This will be done by lat long. You can then set the pin on the controller.
+        
+        // First make sure you can get hold of the pin. Do a query, then check for a result of 1.
+        let lat = view.annotation?.coordinate.latitude
+        let lng = view.annotation?.coordinate.longitude
+        
+        print(" Clicked lat = \(lat!) lng = \(lng!)")
+        
+        //let pinPredicate = NSPredicate(format: "(latitude == \(lat!)) AND (longitude == \(lng!))")
+        
+        let firstPredicate = NSPredicate(format: "latitude == %lf", lat!)
+        let secondPredicate = NSPredicate(format: "longitude == %lf", lng!)
+        let predicate = NSCompoundPredicate(type: NSCompoundPredicate.LogicalType.and, subpredicates: [firstPredicate, secondPredicate])
+        
+        
+        
+        var pins = [Pin]()
+        
+        do {
+            let fetchRequest: NSFetchRequest<Pin> = Pin.fetchRequest()
+            fetchRequest.predicate = predicate
+            pins = try managedContext.fetch(fetchRequest)
+        } catch {
+            print("Error getting pin to show photographs for.")
+            return
+        }
+        
+ 
+        
+        
         let controller: PhotoAlbumViewController
+        
+        
         controller = (self.storyboard?.instantiateViewController(withIdentifier: "PhotoAlbumViewController")) as! PhotoAlbumViewController
+        
+        controller.managedContext = self.managedContext
+        controller.pin = pins.first
+        print(controller.pin.longitude)
+        print(controller.pin.latitude)
+        
         
         self.navigationController?.pushViewController(controller, animated: true)
         
