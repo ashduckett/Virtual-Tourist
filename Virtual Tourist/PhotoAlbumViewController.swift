@@ -38,79 +38,43 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource {
         mapView.setCenter(pinLocation, animated: true)
         mapView.setRegion(region, animated: false)
         
-        
-        
-        // seems to be downloading more than once
-        print("viewDidLoad")
-        
         FlickrAPI.getPhotosForPin(pin: pin, completionHandler: {
             // The pin should now have all of its URLs but not its images
             
-            
-            // Iterate over the pin photos. If a photo has a URL, but no Data, get the data using the URL and save the Data.
-            var count = 0
-            var count2 = 0
-            
-            
-            // How many photos?
-            
-            print("We have \(self.pin.photos?.count) photos")
-            
-            
-            
-            
-            if let photos = self.pin.photos {   // Get the current set of photos. These will be in the context
-                
-                // On the first run, we have 250 photos and 250 downloads. There are no "We already have data!" messages.
-                // On the second run, we have 500 photos and 250 of each.
-                
-                
-                print("Entered if statement with \(photos.count) photo objects")
-                
-                for photo in photos {           // Iterate over the photos
-                    let item = photo as! Photo
-                    
-                    guard let urString = item.imageURL else {
-                        return
-                    }
-                    
-                    guard let url = URL(string: urString) else {
-                        return
-                    }
-                    
-                   
-                    
-                    if let data = item.imageData {
-                        count = count + 1
+            DispatchQueue.global(qos: .background).async {
+                if let photos = self.pin.photos {   // Get the current set of photos. These will be in the context
+                    for photo in photos {           // Iterate over the photos
+                        let item = photo as! Photo
                         
-                        print("We have data already : \(count)")
-                    } else {
-                        count2 = count2 + 1
-                        // We have no image data. Download it, and update the model. Then save.
-                        print("downloading!: \(count2)")
-                        if let imageData = try? Data(contentsOf: url) {
-                            item.imageData = imageData as NSData
-                            
-                                                   }
+                        guard let urString = item.imageURL else {
+                            return
+                        }
+                        
+                        guard let url = URL(string: urString) else {
+                            return
+                        }
+                        
+                        // If the data has nothing in it, load the data based on the url.
+                        if item.imageData == nil {
+                            if let imageData = try? Data(contentsOf: url) {
+                                item.imageData = imageData as NSData
+                                
+                                DispatchQueue.main.async {
+                                    self.photoAlbum.reloadData()
+                                }
+                            }
+                        }
                     }
                     
-                    
-                    
+                    do {
+                        try self.managedContext.save()
+                    } catch {
+                        print("badness")
+                    }
                 }
-                
-                do {
-                    try self.managedContext.save()
-                } catch {
-                    print("badness")
-                }
-
-                
-                
+                print("All necessary data downloaded for current pin.")
             }
-            
-            
-            
-            
+            print("Async code still running.")
         })
     }
     
@@ -175,57 +139,14 @@ extension PhotoAlbumViewController {
         
         cell.backgroundColor = UIColor.black
         
-        // Maybe a single bool will do on load. hasAlbum.
-        
-        
-        
-        // We want to know if that one image has been saved.
-        
-        // This code checks to see if a specific photo at a specific position has data associated with it.
-        // What we should be checking is to see if an entire album exists.
-        // We want to download the entire album
-        
-        
-        /*if let photos = pin.photos {
-            let photo = photos[indexPath.item] as! Photo
-            
-            // This is where we're checking to see if this photo has any photo data associated with it.
-            if let data = photo.imageData {
-                print("We have data!")
-         
-                if let _ = photo.imageURL {
-                
-                        cell.imageView.image = UIImage(data: data as Data)
-                }
-                
-            } else {
-                // Here we know we don't have image data
-                    
-                print("We don't have image data!")
-                if let imageData = try? Data(contentsOf: URL(string: photo.imageURL!)!) {
-                    photo.imageData = imageData as NSData
-                    cell.imageView.image = UIImage(data: imageData)
-                    do {
-                        try managedContext.save()
-                    } catch {
-                        print("BADNESS")
-                    }
-
-             }
-            }
-        }*/
-        
-        // Now, get hold of the photo at item
-        
         let photo = pin.photos?[indexPath.item] as! Photo
         
         // If it has associated data, load it
-        
         if let photoImage = photo.imageData {
             cell.imageView.image = UIImage(data: photoImage as Data)
-            print("We loaded data from the db")
+        // If not, display a placeholder
         } else {
-            print("no data yet. Probably still downloading")
+            cell.imageView.image = UIImage(named: "placeholder")
         }
         
         
