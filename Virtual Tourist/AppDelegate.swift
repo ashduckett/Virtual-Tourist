@@ -18,27 +18,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
-
-        
-        
+  
         guard let mapController = window?.rootViewController?.childViewControllers[0] as? MapViewController else {
             return true
         }
         
-        //guard let albumController = mapController.childViewControllers[0] as? PhotoAlbumViewController else {
-        //    return true
-        //}
-        
         mapController.managedContext = coreDataStack.managedContext
-      //  a//
-        
-        //lbumController.managedContext = coreDataStack.managedContext
-        
-        
-        
-        
-        
+     
         return true
     }
 

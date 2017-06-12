@@ -21,24 +21,17 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         super.viewDidLoad()
         mapView.delegate = self
         
-        
         // Ensure that we add an annotation when the user presses on the map for 1.5 seconds
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(addAnnotation))
         longPress.minimumPressDuration = 1.5
         mapView.addGestureRecognizer(longPress)
         
-        
-        
         // When the view loads, we need to get hold of all the pins and plonk them on the map
-        
-        
         do {
             let fetchRequest: NSFetchRequest<Pin> = Pin.fetchRequest()
             
             let pins = try managedContext.fetch(fetchRequest)
-            print("Pin count: \(pins.count)")
-        
-        
+          
             for pin in pins {
                 let annotation = MKPointAnnotation()
                 annotation.coordinate.latitude = pin.latitude
@@ -48,12 +41,6 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         } catch let error as NSError {
             print("Problem fetching pins \(error)")
         }
-        
-        
-        
-    
-        
-        
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -62,17 +49,11 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         let backItem = UIBarButtonItem()
         backItem.title = "OK"
         self.navigationItem.backBarButtonItem = backItem
-        
-        
-        
-        
         self.navigationController?.setToolbarHidden(true, animated: false)
         self.navigationController?.setNavigationBarHidden(true, animated: false)
     }
     
-    func something() {
-        print("something fired")
-    }
+  
     
     func addAnnotation(gestureRecogniser: UIGestureRecognizer) {
         if gestureRecogniser.state == .began {
@@ -81,14 +62,7 @@ class MapViewController: UIViewController, MKMapViewDelegate {
             let annotation = MKPointAnnotation()
             annotation.coordinate = newCoordinates
             mapView.addAnnotation(annotation)
-    
-        
-            print(managedContext!)
-            
-            // We'll want to store more than one pin
-            // But we'll be saving each time a pin is added
-            //let pin: Pin
-            
+           
             let entity = NSEntityDescription.entity(forEntityName: "Pin", in: managedContext)!
             
             let pin = Pin(entity: entity, insertInto: managedContext)
@@ -101,10 +75,7 @@ class MapViewController: UIViewController, MKMapViewDelegate {
             } catch let error as NSError {
                 print("Saving went badly. Awww, no. \(error)")
             }
-            
-            
-        
-        
+
         }
         
         
@@ -160,25 +131,14 @@ class MapViewController: UIViewController, MKMapViewDelegate {
             return
         }
         
- 
-        
-        
         let controller: PhotoAlbumViewController
-        
         
         controller = (self.storyboard?.instantiateViewController(withIdentifier: "PhotoAlbumViewController")) as! PhotoAlbumViewController
         
         controller.managedContext = self.managedContext
         controller.pin = pins.first
-        print(controller.pin.longitude)
-        print(controller.pin.latitude)
-        
         
         self.navigationController?.pushViewController(controller, animated: true)
-        
-        
-        
-        //self.present(controller, animated: true, completion: nil)
         
         // This line has to run in order to be able to reselect the pin again. Otherwise two taps
         // will only cause the recognition of one

@@ -52,8 +52,6 @@ class FlickrAPI {
                     
                     }
                 }
-                
-                // Remove this in the arguments and calls
                 completionHandler()
                 
                 

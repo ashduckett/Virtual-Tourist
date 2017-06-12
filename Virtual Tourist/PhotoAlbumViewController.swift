@@ -23,20 +23,14 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource {
     // This will be set before the view is loaded and will be the pin that was selected.
     var pin: Pin!
     var photos: [Photo]?
+    var newCollectionBtn: UIBarButtonItem!
     
-    var hasAlbum: Bool = false
     
-    
-    // This method is called each time the view opens
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        photoAlbum.dataSource = self
-        photoAlbum.delegate = self
+    func downloadImagesAndUpdatePhotoAlbum() {
         
-        let pinLocation = CLLocationCoordinate2DMake(pin.latitude, pin.longitude)
-        let region = MKCoordinateRegionMake(pinLocation, MKCoordinateSpanMake(0.5, 0.5))
-        mapView.setCenter(pinLocation, animated: true)
-        mapView.setRegion(region, animated: false)
+        DispatchQueue.main.async {
+            self.newCollectionBtn.isEnabled = false
+        }
         
         FlickrAPI.getPhotosForPin(pin: pin, completionHandler: {
             // The pin should now have all of its URLs but not its images
@@ -72,10 +66,34 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource {
                         print("badness")
                     }
                 }
-                print("All necessary data downloaded for current pin.")
+                DispatchQueue.main.async {
+                    self.newCollectionBtn.isEnabled = true
+                }
             }
             print("Async code still running.")
         })
+    }
+    
+    
+    // This method is called each time the view opens
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        photoAlbum.dataSource = self
+        photoAlbum.delegate = self
+        
+        let pinLocation = CLLocationCoordinate2DMake(pin.latitude, pin.longitude)
+        let region = MKCoordinateRegionMake(pinLocation, MKCoordinateSpanMake(0.5, 0.5))
+        mapView.setCenter(pinLocation, animated: true)
+        mapView.setRegion(region, animated: false)
+        
+        // Add the annotation
+        let annotation = MKPointAnnotation()
+        annotation.coordinate = pinLocation
+        mapView.addAnnotation(annotation)
+        
+        self.downloadImagesAndUpdatePhotoAlbum()
+        
+        
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -84,10 +102,10 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource {
         self.navigationController?.setToolbarHidden(false, animated: false)
         self.navigationController?.setNavigationBarHidden(false, animated: false)
         
-        let newCollectionButton = UIBarButtonItem(title: "New Collection", style: .plain, target: self, action: #selector(newCollection))
+        newCollectionBtn = UIBarButtonItem(title: "New Collection", style: .plain, target: self, action: #selector(newCollection))
         let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
         
-        setToolbarItems([flexibleSpace, newCollectionButton, flexibleSpace], animated: true)
+        setToolbarItems([flexibleSpace, newCollectionBtn, flexibleSpace], animated: true)
     
         }
     
@@ -109,30 +127,53 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource {
     
     
     func newCollection() {
-        print("New Collection button hit")
-        
-        
-        let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: "Pin")
-        let request = NSBatchDeleteRequest(fetchRequest: fetch)
-        
-        do {
-            let result = try managedContext.execute(request)
-        } catch {
-            print("prob")
+        // Clear out the pins
+        for item in pin.photos! {
+            let photo = item as! Photo
+            managedContext.delete(photo)
         }
         
-        let fetch1 = NSFetchRequest<NSFetchRequestResult>(entityName: "Photo")
-        let request1 = NSBatchDeleteRequest(fetchRequest: fetch)
+        // Update the collection view
+        photoAlbum.reloadData()
         
-        do {
-            let result2 = try managedContext.execute(request1)
-        } catch {
-            print("prob")
-        }
+        
+        // Download a fresh set
+        downloadImagesAndUpdatePhotoAlbum()
     }
 }
 
 extension PhotoAlbumViewController {
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        print("photo tapped")
+        
+        // Get hold of correct object
+        
+        if let photos = pin.photos {
+            let photo = photos[indexPath.item] as! Photo
+            
+          
+            let alert = UIAlertController(title: "Confirm", message: "Delete this image?", preferredStyle: .alert)
+            
+            let OKAction = UIAlertAction(title: "OK", style: .default) { (action: UIAlertAction!) in
+                self.managedContext.delete(photo)
+                self.photoAlbum.reloadData()
+            }
+            
+            alert.addAction(OKAction)
+            
+            let cancelAction = UIAlertAction(title: "Cancel", style: .default) { (action: UIAlertAction!) in
+                alert.dismiss(animated: true, completion: nil)
+            }
+            
+            alert.addAction(cancelAction)
+            
+            self.present(alert, animated: true, completion: nil)
+            
+        }
+    }
+    
+    
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "FlickrCell", for: indexPath) as! PhotoAlbumCell
