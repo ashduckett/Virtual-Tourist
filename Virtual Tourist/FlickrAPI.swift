@@ -59,57 +59,8 @@ class FlickrAPI {
                 completionHandler()
             }
         })
-
-        
-        
     }
     
-    /*static func getPhotoCountForSearch(completionHandler: @escaping (_: String?, _: Int?) -> Void) {
-        
-        
-        let methodParameters: [String:String] = [
-            Constants.FlickrParameterKeys.BoundingBox:bboxString(pin: pin),
-            Constants.FlickrParameterKeys.Method:Constants.FlickrParameterValues.SearchMethod,
-            Constants.FlickrParameterKeys.APIKey:Constants.FlickrParameterValues.APIKey,
-            Constants.FlickrParameterKeys.SafeSearch:Constants.FlickrParameterValues.UseSafeSearch,
-            Constants.FlickrParameterKeys.Extras:Constants.FlickrParameterValues.MediumURL,
-            Constants.FlickrParameterKeys.Format:Constants.FlickrParameterValues.ResponseFormat,
-            Constants.FlickrParameterKeys.NoJSONCallback: Constants.FlickrParameterValues.DisableJSONCallback
-        ]
-        
-        // Here we should be getting the total number of results using a method from the convenience class
-        
-        FlickrAPIClient.performFlickrGETRequest(urlToHit: flickrURLFromParameters(methodParameters), completionHandler: {(success, errorString, result, response) in
-            
-            if success {
-                // If we've got to this point then we want to find the count
-                
-                guard let result = result else {
-                    return
-                }
-                
-                
-                guard let photosDictionary = result[Constants.FlickrResponseKeys.Photos] as? [String:AnyObject] else {
-                    return
-                }
-                
-                //completionHandler(nil, photosDictionary["total"] as? String)
-                
-                
-                guard let total = photosDictionary["total"] as? String else {
-                    return
-                }
-                
-                print("Total \(total)")
-                completionHandler(nil, Int(total))
-                
-                
-            }
-            
-            
-            
-        })
-    }*/
     
     private static func flickrURLFromParameters(_ parameters: [String: String]) -> URL {
         

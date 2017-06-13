@@ -15,7 +15,6 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource {
     @IBOutlet weak var photoAlbum: UICollectionView!
     @IBOutlet weak var mapView: MKMapView!
     
-    
     var managedContext: NSManagedObjectContext!
     
     fileprivate let sectionInsets = UIEdgeInsets(top: 0.0, left: 20.0, bottom: 0.0, right: 20.0)
@@ -24,7 +23,6 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource {
     var pin: Pin!
     var photos: [Photo]?
     var newCollectionBtn: UIBarButtonItem!
-    
     
     func downloadImagesAndUpdatePhotoAlbum() {
         
@@ -36,35 +34,38 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource {
             // The pin should now have all of its URLs but not its images
             
             DispatchQueue.global(qos: .background).async {
-                if let photos = self.pin.photos {   // Get the current set of photos. These will be in the context
-                    for photo in photos {           // Iterate over the photos
-                        let item = photo as! Photo
+                guard let photos = self.pin.photos else {
+                    return
+                }
+                
+                for photo in photos {           // Iterate over the photos
+                    let item = photo as! Photo
                         
-                        guard let urString = item.imageURL else {
-                            return
-                        }
+                    guard let urString = item.imageURL else {
+                        return
+                    }
                         
-                        guard let url = URL(string: urString) else {
-                            return
-                        }
+                    guard let url = URL(string: urString) else {
+                        return
+                    }
                         
-                        // If the data has nothing in it, load the data based on the url.
-                        if item.imageData == nil {
-                            if let imageData = try? Data(contentsOf: url) {
-                                item.imageData = imageData as NSData
-                                
-                                DispatchQueue.main.async {
-                                    self.photoAlbum.reloadData()
-                                }
+                    // If the data has nothing in it, load the data based on the url.
+                    if item.imageData == nil {
+         
+                        if let imageData = try? Data(contentsOf: url) {
+                            item.imageData = imageData as NSData
+                            
+                            DispatchQueue.main.async {
+                                self.photoAlbum.reloadData()
                             }
                         }
                     }
+                }
                     
-                    do {
-                        try self.managedContext.save()
-                    } catch {
-                        print("badness")
-                    }
+                do {
+                    try self.managedContext.save()
+                } catch {
+                    print("badness")
                 }
                 DispatchQueue.main.async {
                     self.newCollectionBtn.isEnabled = true
@@ -91,7 +92,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource {
         annotation.coordinate = pinLocation
         mapView.addAnnotation(annotation)
         
-        self.downloadImagesAndUpdatePhotoAlbum()
+        downloadImagesAndUpdatePhotoAlbum()
         
         
     }
@@ -193,11 +194,6 @@ extension PhotoAlbumViewController {
         
        
         return cell
-    }
-    
-    
-    func numberOfSections(in collectionView: UICollectionView) -> Int {
-        return 1
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
